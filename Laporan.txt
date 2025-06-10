@@ -1,0 +1,123 @@
+# Laporan Proyek Machine Learning  
+## Sistem Rekomendasi Musik Berbasis Content-Based Filtering
+
+---
+
+## 1. Project Overview  
+Latar belakang proyek ini adalah tingginya kebutuhan pengguna untuk menemukan lagu yang sesuai selera secara cepat dan personal. Dengan begitu banyak lagu di platform streaming, pengguna sering kewalahan mencari lagu baru yang mirip dengan lagu favorit mereka. Sistem rekomendasi musik berbasis fitur konten dapat membantu dengan memberikan rekomendasi lagu yang serupa berdasarkan karakteristik audio.
+
+Proyek ini penting karena meningkatkan pengalaman pengguna dalam menikmati musik dan membantu platform streaming mempertahankan pengguna dengan rekomendasi yang relevan. Referensi riset dari bidang sistem rekomendasi menunjukkan bahwa content-based filtering merupakan pendekatan efektif untuk kasus tanpa data interaksi pengguna yang lengkap (Adomavicius & Tuzhilin, 2005).
+
+---
+
+## 2. Business Understanding  
+**Problem Statement:**  
+Pengguna kesulitan menemukan lagu baru yang sesuai dengan selera musik mereka tanpa harus eksplorasi manual atau bergantung pada rekomendasi dari pengguna lain.
+
+**Goals:**  
+- Membangun sistem rekomendasi lagu berbasis fitur konten yang mampu memberikan rekomendasi lagu mirip dengan lagu input.  
+- Menghasilkan daftar top-N lagu rekomendasi yang relevan secara audio dan genre.  
+
+**Solution Approach:**  
+Proyek ini menggunakan pendekatan **Content-Based Filtering** untuk menyelesaikan masalah rekomendasi. Model akan menghitung kemiripan antar lagu berdasarkan fitur audio numerik yang relevan, seperti danceability dan energy. Pendekatan ini sesuai karena tidak tersedia data interaksi pengguna seperti rating atau playlist history.
+
+Pendekatan content-based dipilih karena dataset hanya berisi fitur lagu, tanpa data interaksi pengguna.
+
+---
+
+## 3. Data Understanding  
+- **Dataset:** Spotify Songs Dataset ([link download](https://www.kaggle.com/datasets/zaheenhamidani/ultimate-spotify-tracks-db)) berisi 10.000 lagu dengan metadata dan fitur audio.  
+- Data terdiri dari 18 kolom dengan tipe data numerik dan kategorikal.  
+- Fitur utama yang dipilih: `danceability`, `energy`, `valence`, `tempo`, dan `loudness`.  
+- Data bersih, tanpa missing values.  
+- Distribusi genre lagu cukup beragam (genre: Alternative, Country, Movie, R&B, A Capella, Dance).  
+
+**Deskripsi Fitur Dataset:**
+
+| Nama Fitur         | Deskripsi Singkat |
+|--------------------|------------------|
+| `track_name`       | Nama lagu. |
+| `track_id`         | ID unik dari lagu (Spotify URI). |
+| `artist_name`      | Nama artis atau penyanyi. |
+| `genre`            | Kategori genre lagu (pop, rock, hip-hop, dll). |
+| `popularity`       | Skor popularitas lagu di Spotify (0–100). |
+| `acousticness`     | Menggambarkan seberapa akustik sebuah trek (0.0–1.0). Nilai lebih tinggi berarti lebih akustik. |
+| `danceability`     | Seberapa cocok lagu untuk berdansa (0.0–1.0). |
+| `duration_ms`      | Durasi lagu dalam milidetik. |
+| `energy`           | Mengukur intensitas dan aktivitas (0.0–1.0). |
+| `instrumentalness` | Mengindikasikan seberapa besar kemungkinan lagu tidak memiliki vokal (0.0–1.0). |
+| `key`              | Tangga nada lagu, direpresentasikan sebagai angka (0=C, 1=C#, ..., 11=B). |
+| `liveness`         | Kemungkinan apakah lagu direkam dalam konser langsung (0.0–1.0). |
+| `loudness`         | Volume rata-rata lagu dalam desibel. |
+| `mode`             | Modus musik: mayor (1) atau minor (0). |
+| `speechiness`      | Mengukur kehadiran kata yang diucapkan dalam lagu (0.0–1.0). |
+| `tempo`            | Kecepatan lagu dalam beat per minute (BPM). |
+| `time_signature`   | Penanda birama lagu, biasanya 4 (4/4). |
+| `valence`          | Ukuran kepositifan lagu (0.0=sedih, 1.0=bahagia). |
+
+**Distribusi Genre:**  
+Genre yang umum pada dataset antara lain: pop, dance pop, hip-hop, rock, dan country. Pop adalah genre dengan jumlah lagu terbanyak.
+
+**Visualisasi Awal (EDA):**  
+- Histogram untuk fitur `danceability`, `energy`, dan `valence` menunjukkan distribusi lagu cenderung berada di nilai tengah.  
+- Sebagian besar lagu berdurasi sekitar 200.000–250.000 milidetik (3–4 menit).  
+- Nilai `speechiness` rendah untuk mayoritas lagu, mengindikasikan lebih banyak lagu dengan vokal bernyanyi dibandingkan lagu berbicara (spoken word).  
+- Distribusi `popularity` menunjukkan bahwa banyak lagu memiliki popularitas sedang (30–70).
+
+---
+
+## 4. Data Preparation  
+- **Seleksi fitur:** Dalam membangun sistem rekomendasi berbasis content-based filtering, saya memilih beberapa fitur audio yang merepresentasikan karakteristik lagu, yaitu:
+	- danceability: Seberapa cocok lagu untuk berdansa.
+	- energy: Intensitas dan aktivitas energi lagu.
+	- valence: Positivists atau mood lagu.
+	- tempo: Kecepatan lagu dalam BPM (beats per minute).
+	- loudness: Keras atau lembutnya lagu dalam desibel.
+Fitur-fitur ini dipilih karena mampu merefleksikan atribut musik yang dapat membedakan satu lagu dengan lagu lainnya secara konten. Kemudian mengambil subset dataset hanya pada kolom fitur tersebut untuk proses selanjutnya. 
+ 
+- **Normalisasi:** 
+	- Karena fitur-fitur audio memiliki skala yang berbeda-beda (misalnya tempo dalam BPM, loudness dalam desibel), kita 		melakukan normalisasi menggunakan Min-Max Scaler.
+	- Proses ini akan mengubah nilai fitur ke rentang 0 sampai 1 agar semua fitur memiliki bobot yang seimbang saat menghitung 	kemiripan (similarity) antar lagu.
+	- Setelah proses normalisasi, data fitur siap untuk digunakan dalam perhitungan similarity.
+- **Lowercase track_name:** Memudahkan pencarian lagu tanpa sensitif huruf besar kecil.  
+- **Mapping index:** Membuat mapping nama lagu ke indeks DataFrame untuk akses cepat saat rekomendasi.  
+
+Tahapan ini penting agar perhitungan similarity menggunakan cosine similarity menjadi valid dan hasil rekomendasi akurat.
+
+---
+
+## 5. Modeling and Result  
+- **Metode Content-Based Filtering:**  
+Menghitung cosine similarity antar lagu berdasarkan fitur yang telah dinormalisasi.  
+- Membuat fungsi rekomendasi lagu yang menerima input nama lagu dan mengembalikan top-N lagu dengan skor kemiripan tertinggi.  
+
+**Top-N Recommendation Contoh:**  
+Input: "Shape of You"  
+Output: 5 lagu teratas yang memiliki kemiripan fitur tertinggi:  
+- "given up" – Linkin Park  
+- "god's been good to me" – Keith Urban  
+- …  
+
+- **Solusi alternatif (Collaborative Filtering):**  
+Tidak diimplementasikan karena tidak adanya data interaksi pengguna.
+
+**Kelebihan Content-Based Filtering:**  
+- Tidak perlu data interaksi pengguna.  
+- Rekomendasi personal berdasarkan konten lagu.  
+
+**Kekurangan:**  
+- Terbatas pada fitur yang dipilih, kurang bisa menemukan lagu dengan karakteristik berbeda yang disukai pengguna.  
+- Rentan terhadap masalah “seragam” (recommending similar items terus menerus).
+
+---
+
+## 6. Evaluation  
+- **Metrik evaluasi:** Precision@k  
+Precision@k = (jumlah lagu rekomendasi dengan genre sama dengan lagu input) / k  
+- Precision@5 untuk lagu “Shape of You” = 0.4, berarti 40% lagu rekomendasi memiliki genre yang sama.  
+
+**Penjelasan metrik:**  
+Precision mengukur proporsi rekomendasi yang relevan (dalam hal ini genre sama), berguna untuk menilai kualitas rekomendasi tanpa data feedback pengguna.  
+Hasil evaluasi menunjukkan bahwa model memberikan rekomendasi cukup relevan secara genre, walaupun masih ada ruang untuk perbaikan.
+
+---
